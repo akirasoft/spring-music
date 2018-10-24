@@ -9,11 +9,12 @@ groups:
   - load-tests-prod
   - promote-new-version
 
+
 resources:
 - name: music-repo
   type: git
   source:
-    uri: https://github.com/akirasoft/spring-music.git
+    uri: https://github.com/yourusername/spring-music.git
     branch: master
     username: ((github-username))
     password: ((github-password))
