@@ -5,9 +5,24 @@ groups:
   - build-binary
   - deploy-app
   - load-tests
+  - validate-stage-load-test
   - push-to-prod
   - load-tests-prod
+  - validate-prod-load-test
   - promote-new-version
+- name: init
+  jobs:
+  - init-dynatrace
+
+resource_types:
+- name: dynatrace-ufo-resource
+  type: docker-image
+  source:
+    repository: mvilliger/dynatrace-ufo-resource
+- name: dynatrace-resource
+  type: docker-image
+  source:
+    repository: mvilliger/dynatrace-resource
 
 resources:
 - name: music-repo
@@ -26,7 +41,7 @@ resources:
     key: ((workshopnum))/current-version
     access_key_id: ((s3-access-key-id))
     secret_access_key: ((s3-secret-access-key))
-    initial_version: 2.0.0
+    initial_version: 2.0
 
 - name: music-release
   type: s3
@@ -58,8 +73,24 @@ resources:
     skip_cert_check: true
     space: ((pcf-prod-space))
     current_app_name: ((pcf-prod-app-suffix))
+
+- name: dynatrace
+  type: dynatrace-resource
+  source:
+    apitoken: ((apitoken))
+    tenanthost: ((tenanthost))
     
 jobs:
+- name: init-dynatrace
+  public: true
+  plan:
+  - get: music-repo
+  - task: init-dynatrace-task
+    file: music-repo/ci/tasks/init-dynatrace-task.yml
+    params: 
+      apitoken: ((apitoken))
+      tenanthost: ((tenanthost))
+
 - name: unit
   plan:
   - get: music-repo
@@ -102,7 +133,13 @@ jobs:
     file: music-repo/ci/tasks/app-manifest-prep.yml
     params:
       PCF_APP_SUFFIX: ((pcf-stage-app-suffix))
-      WORKSHOPNUM: ((workshopnum))
+      WORKSHOPNUM: ((workshopnum))           
+  - put: dynatrace
+    params:
+      monspecserviceenvironment: SpringMusic/Staging
+      pipelinetaskname: ConcourseDeploy
+      VERSION_FILE: version/number
+      APP_REPO: music-repo
   - put: PCF-Stage
     params:
       manifest: app-manifest-output/manifest.yml
@@ -121,17 +158,48 @@ jobs:
     params:
       PCF_APP_SUFFIX: ((pcf-stage-app-suffix))
       PCF_APP_DOMAIN: ((pcf-stage-app-domain))
+  - task: push-dynatrace-monspec-data
+    file: music-repo/ci/tasks/push-dynatrace-monspec-data.yml
+    params: 
+      monspecserviceenvironment: SpringMusic/Staging
+      apitoken: ((apitoken))
+      tenanthost: ((tenanthost))
+
+- name: validate-stage-load-test
+  serial: true
+  public: true
+  plan:
+  - get: music-repo
+    trigger: true
+    passed:
+      - load-tests
+  - task: get-current-app-color
+    file: music-repo/ci/tasks/current-app-get-info.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      PCF_API: ((pcf-prod-api))
+      PCF_ORG: ((pcf-prod-organization))
+      PCF_USER: ((prod-deploy-username))
+      PCF_PWD: ((prod-deploy-password))
+      PCF_SPACE: ((pcf-prod-space))        
+  - task: validate-via-monspec
+    file: music-repo/ci/tasks/validate-via-monspec.yml
+    params: 
+      monspeccomparison: SpringMusic/StagingToStagingLastHour
+      apitoken: ((apitoken))
+      tenanthost: ((tenanthost))   
+
 
 - name: push-to-prod
   serial: true
   public: true
   plan:  
   - get: music-repo
-    trigger: false
+    trigger: true
     passed:
-      - load-tests
+      - validate-stage-load-test
   - get: version
-  - get: music-release 
+  - get: music-release
   - task: get-current-app-color
     file: music-repo/ci/tasks/current-app-get-info.yml
     params:
@@ -147,6 +215,12 @@ jobs:
       PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
       WORKSHOPNUM: ((workshopnum))      
       PRODUCTION: true  
+  - put: dynatrace
+    params:
+      monspecserviceenvironment: SpringMusic/Production
+      pipelinetaskname: ConcourseDeploy
+      VERSION_FILE: version/number
+      APP_REPO: music-repo 
   - put: PCF-Prod
     params:
       manifest: app-manifest-output/manifest.yml
@@ -174,16 +248,47 @@ jobs:
     params:
       PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
       PCF_APP_DOMAIN: ((pcf-prod-app-domain))
-      PRODUCTION: true 
+      PRODUCTION: true
+  - task: push-dynatrace-monspec-data
+    file: music-repo/ci/tasks/push-dynatrace-monspec-data.yml
+    params: 
+      monspecserviceenvironment: SpringMusic/Production-$NEXT_APP_COLOR
+      apitoken: ((apitoken))
+      tenanthost: ((tenanthost))
+
+- name: validate-prod-load-test
+  serial: true
+  public: true
+  plan:
+  - get: music-repo
+    trigger: true
+    passed:
+      - load-tests-prod
+  - task: get-current-app-color
+    file: music-repo/ci/tasks/current-app-get-info.yml      
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      PCF_API: ((pcf-prod-api))
+      PCF_ORG: ((pcf-prod-organization))
+      PCF_USER: ((prod-deploy-username))
+      PCF_PWD: ((prod-deploy-password))
+      PCF_SPACE: ((pcf-prod-space))
+  - task: validate-via-monspec
+    file: music-repo/ci/tasks/validate-via-monspec.yml
+    params: 
+      monspeccomparison: SpringMusic/Production-$NEXT_APP_COLOR\ToProduction-$CURRENT_APP_COLOR\Last5m
+      #monspeccomparison: SpringMusic/ProductionToProductionLast5m
+      apitoken: ((apitoken))
+      tenanthost: ((tenanthost))    
 
 - name: promote-new-version
   serial: true
   public: true
   plan:
   - get: music-repo
-    trigger: false
+    trigger: true
     passed:
-      - load-tests-prod
+      - validate-prod-load-test
   - task: get-current-app-color
     file: music-repo/ci/tasks/current-app-get-info.yml
     params:

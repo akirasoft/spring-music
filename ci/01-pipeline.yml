@@ -14,7 +14,7 @@ resources:
 - name: music-repo
   type: git
   source:
-    uri: https://github.com/yourusername/spring-music.git
+    uri: https://github.com/akirasoft/spring-music.git
     branch: master
     username: ((github-username))
     password: ((github-password))
@@ -27,7 +27,7 @@ resources:
     key: ((workshopnum))/current-version
     access_key_id: ((s3-access-key-id))
     secret_access_key: ((s3-secret-access-key))
-    initial_version: 2.0.0
+    initial_version: 3.0.0
 
 - name: music-release
   type: s3
