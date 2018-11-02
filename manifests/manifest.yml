@@ -9,4 +9,4 @@ applications:
     DT_CUSTOM_PROP: DEPLOYMENT_GRP_NAME=SPRING-MUSIC-DTGRP DEPLOYMENT_COLOR=SPRING-MUSIC-APPCOLOR
     DEPLOYMENT_GRP_NAME: SPRING-MUSIC-DTGRP
     DELAY: 0
-    incrementthistoforcenewrelease: 12
+    incrementthistoforcenewrelease: 1
