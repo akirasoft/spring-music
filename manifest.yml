@@ -5,5 +5,6 @@ applications:
   instances: 1
   path: ./build/libs/spring-music-1.0.jar
   buildpack: java_buildpack_offline
+  random-route: true
   env:
-    DELAY: 4711
+    DELAY: 0
