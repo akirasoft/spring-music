@@ -8,3 +8,4 @@ applications:
   random-route: true
   env:
     DELAY: 0
+    LabName: Automate-Monitoring-For-Pivotal-Cloud-Foundry
