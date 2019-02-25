@@ -30,8 +30,10 @@ resources:
   source:
     uri: https://github.com/akirasoft/spring-music.git
     branch: master
-    username: ((github-username))
-    password: ((github-password))
+    # username: ((github-username))
+    # password: ((github-password))
+    # utilize private key if 2 factor auth is enabled
+    private_key: ((github-private-key))
 
 - name: version
   type: semver
