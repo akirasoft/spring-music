@@ -28,7 +28,7 @@ resources:
 - name: music-repo
   type: git
   source:
-    uri: https://github.com/akirasoft/spring-music.git
+    uri: git@github.com:akirasoft/spring-music.git
     branch: master
     # username: ((github-username))
     # password: ((github-password))
