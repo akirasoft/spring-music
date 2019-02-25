@@ -11,6 +11,8 @@ inputs:
 - name: music-repo
 - name: current-app-info
   optional: true
-
+params:
+  PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+  PCF_APP_DOMAIN: ((pcf-prod-app-domain))
 run:
   path: ./music-repo/ci/tasks/load-tests
