@@ -10,4 +10,4 @@ applications:
     DT_CUSTOM_PROP: DEPLOYMENT_GRP_NME=SPRING-MUSIC-DTGRP DEPLOYMENT_COLOR=SPRING-MUSIC-APPCOLOR
     DEPLOYMENT_GRP_NME: SPRING-MUSIC-DTGRP
     DELAY: 0
-    incrementthistoforcenewrelease: 2
+    incrementthistoforcenewrelease: 3
