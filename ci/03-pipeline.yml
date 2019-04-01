@@ -33,7 +33,7 @@ resources:
     # username: ((github-username))
     # password: ((github-password))
     # utilize private key if 2 factor auth is enabled
-    private_key: ((github-private-key))
+    private_key: ((github_private_key))
 
 - name: version
   type: semver
