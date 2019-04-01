@@ -39,17 +39,17 @@ resources:
   type: semver
   source:
     bucket: ((s3-bucket-name))
-    region_name: us-west-2
+    region_name: us-east-2
     key: ((workshopnum))/current-version
     access_key_id: ((s3-access-key-id))
     secret_access_key: ((s3-secret-access-key))
-    initial_version: 2.0.0
+    initial_version: 1.0.0
 
 - name: music-release
   type: s3
   source:
     bucket: ((s3-bucket-name))
-    region_name: us-west-2
+    region_name: us-east-2
     regexp: ((workshopnum))/spring-music-(.*).jar
     access_key_id: ((s3-access-key-id))
     secret_access_key: ((s3-secret-access-key))
