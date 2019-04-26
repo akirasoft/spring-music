@@ -1,0 +1,72 @@
+{
+  "spec_version": "1.0",
+  "indicators": [
+    {
+      "id": "P90_ResponseTime_SpringMusic",
+      "source": "Dynatrace",
+      "query": {
+        "timeseriesId": "com.dynatrace.builtin:service.responsetime",
+        "aggregation": "p90",
+        "tags": [
+          "DeploymentGroup:SPRING-MUSIC-workshop99-Stage"
+        ]
+      },
+      "grading": {
+        "type": "Threshold",
+        "thresholds": {
+          "upperSevere": 4000000,
+          "upperWarning": 2000000,
+          "lowerWarning ": 0,
+          "lowerSevere": 0
+        },
+        "metricScore": 80
+      }
+    },
+    {
+      "id": "AVG_ResponseTime_SpringMusic",
+      "source": "Dynatrace",
+      "query": {
+        "timeseriesId": "com.dynatrace.builtin:service.responsetime",
+        "aggregation": "avg",
+        "tags": [
+            "DeploymentGroup:SPRING-MUSIC-workshop99-Stage"
+          ]
+      },
+      "grading": {
+        "type": "Threshold",
+        "thresholds": {
+          "upperSevere": 4000000,
+          "upperWarning": 2000000,
+          "lowerWarning ": 0,
+          "lowerSevere": 0
+        },
+        "metricScore": 80
+      }
+    },
+    {
+      "id": "AVG_FailureRate_SpringMusic",
+      "source": "Dynatrace",
+      "query": {
+        "timeseriesId": "com.dynatrace.builtin:service.failurerate",
+        "aggregation": "avg",
+        "tags": [
+            "DeploymentGroup:SPRING-MUSIC-workshop99-Stage"
+          ]
+      },
+      "grading": {
+        "type": "Threshold",
+        "thresholds": {
+          "upperSevere": 5,
+          "upperWarning": 2,
+          "lowerWarning ": 0,
+          "lowerSevere": 0
+        },
+        "metricScore": 80
+      }
+    }
+  ],
+  "objectives": {
+    "pass": 90,
+    "warning": 75
+  }
+}

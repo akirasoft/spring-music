@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: mvilliger/pitometer-cli
+    tag: "0.1.0"
+
+inputs:
+- name: music-repo
+- name: current-app-info
+  optional: true
+
+run:
+  path: ./music-repo/ci/tasks/validate-via-pitometer

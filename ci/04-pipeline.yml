@@ -1,0 +1,314 @@
+groups:
+- name: main
+  jobs:
+  - unit
+  - build-binary
+  - deploy-app
+  - load-tests
+  - validate-stage-load-test
+  - push-to-prod
+  - load-tests-prod
+  - validate-prod-load-test
+  - promote-new-version
+- name: init
+  jobs:
+  - init-dynatrace
+
+resource_types:
+- name: dynatrace-ufo-resource
+  type: docker-image
+  source:
+    repository: mvilliger/dynatrace-ufo-resource
+- name: dynatrace-resource
+  type: docker-image
+  source:
+    repository: mvilliger/dynatrace-resource
+
+resources:
+- name: music-repo
+  type: git
+  source:
+    uri: git@github.com:akirasoft/spring-music.git
+    branch: master
+    # username: ((github-username))
+    # password: ((github-password))
+    # utilize private key if 2 factor auth is enabled
+    private_key: ((github_private_key))
+
+- name: version
+  type: semver
+  source:
+    bucket: ((s3-bucket-name))
+    region_name: us-east-2
+    key: ((workshopnum))/current-version
+    access_key_id: ((s3-access-key-id))
+    secret_access_key: ((s3-secret-access-key))
+    initial_version: 1.0.0
+
+- name: music-release
+  type: s3
+  source:
+    bucket: ((s3-bucket-name))
+    region_name: us-east-2
+    regexp: ((workshopnum))/spring-music-(.*).jar
+    access_key_id: ((s3-access-key-id))
+    secret_access_key: ((s3-secret-access-key))
+
+- name: PCF-Stage
+  type: cf
+  source:
+    api: ((pcf-stage-api))
+    organization: ((pcf-stage-organization))
+    username: ((stage-deploy-username))
+    password: ((stage-deploy-password))
+    skip_cert_check: true
+    space: ((pcf-stage-space))
+    current_app_name: ((pcf-stage-app-suffix))
+
+- name: PCF-Prod
+  type: cf
+  source:
+    api: ((pcf-prod-api))
+    organization: ((pcf-prod-organization))
+    username: ((prod-deploy-username))
+    password: ((prod-deploy-password))
+    skip_cert_check: true
+    space: ((pcf-prod-space))
+    current_app_name: ((pcf-prod-app-suffix))
+
+- name: dynatrace
+  type: dynatrace-resource
+  source:
+    apitoken: ((apitoken))
+    tenanthost: ((tenanthost))
+    
+jobs:
+- name: init-dynatrace
+  public: true
+  plan:
+  - get: music-repo
+  - task: init-dynatrace-task
+    file: music-repo/ci/tasks/init-dynatrace-task.yml
+    params: 
+      apitoken: ((apitoken))
+      tenanthost: ((tenanthost))
+
+- name: unit
+  plan:
+  - get: music-repo
+    trigger: true
+  - task: unit
+    file: music-repo/ci/tasks/unit.yml
+
+- name: build-binary
+  serial: true
+  plan:
+  - get: music-repo
+    passed: [unit]
+    trigger: true
+  - get: version
+    params: {bump: patch}
+  - task: build-artifact
+    file: music-repo/ci/tasks/build-artifact.yml
+    timeout: 5m
+  - put: music-release
+    params:
+      file: workspace/spring-music-*.jar
+  - put: music-repo
+    params:
+      repository: music-repo
+      tag: version/number
+  - put: version
+    params: {file: version/number}
+
+- name: deploy-app
+  serial: true
+  public: true
+  plan:
+  - get: music-repo
+    trigger: true
+    passed: 
+      - build-binary
+  - get: version
+  - get: music-release
+  - task: prepare-app-manifest
+    file: music-repo/ci/tasks/app-manifest-prep.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-stage-app-suffix))
+      WORKSHOPNUM: ((workshopnum))           
+  - put: dynatrace
+    params:
+      monspecserviceenvironment: SpringMusic/Staging
+      pipelinetaskname: ConcourseDeploy
+      VERSION_FILE: version/number
+      APP_REPO: music-repo
+  - put: PCF-Stage
+    params:
+      manifest: app-manifest-output/manifest.yml
+      path: music-release/spring-music-*.jar
+
+- name: load-tests
+  serial: true
+  public: true
+  plan:    
+  - get: music-repo
+    trigger: true
+    passed:
+      - deploy-app
+  - task: run-load-tests
+    file: music-repo/ci/tasks/load-tests.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-stage-app-suffix))
+      PCF_APP_DOMAIN: ((pcf-stage-app-domain))
+  - task: push-dynatrace-monspec-data
+    file: music-repo/ci/tasks/push-dynatrace-monspec-data.yml
+    params: 
+      monspecserviceenvironment: SpringMusic/Staging
+      apitoken: ((apitoken))
+      tenanthost: ((tenanthost))
+
+- name: validate-stage-load-test
+  serial: true
+  public: true
+  plan:
+  - get: music-repo
+    trigger: true
+    passed:
+      - load-tests
+  - task: get-current-app-color
+    file: music-repo/ci/tasks/current-app-get-info.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      PCF_API: ((pcf-prod-api))
+      PCF_ORG: ((pcf-prod-organization))
+      PCF_USER: ((prod-deploy-username))
+      PCF_PWD: ((prod-deploy-password))
+      PCF_SPACE: ((pcf-prod-space))        
+  - task: validate-via-perfspec
+    file: music-repo/ci/tasks/validate-via-perfspec.yml
+    params: 
+      perfspec-file: springmusic-perfspec-stage.json
+      DYNATRACE_APITOKEN: ((apitoken))
+      DYNATRACE_BASEURL: ((tenanthost))
+      APP_REPO: music-repo
+
+
+- name: push-to-prod
+  serial: true
+  public: true
+  plan:  
+  - get: music-repo
+    trigger: true
+    passed:
+      - validate-stage-load-test
+  - get: version
+  - get: music-release
+  - task: get-current-app-color
+    file: music-repo/ci/tasks/current-app-get-info.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      PCF_API: ((pcf-prod-api))
+      PCF_ORG: ((pcf-prod-organization))
+      PCF_USER: ((prod-deploy-username))
+      PCF_PWD: ((prod-deploy-password))
+      PCF_SPACE: ((pcf-prod-space))  
+  - task: prepare-app-manifest
+    file: music-repo/ci/tasks/app-manifest-prep.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      WORKSHOPNUM: ((workshopnum))      
+      PRODUCTION: true  
+  - put: dynatrace
+    params:
+      monspecserviceenvironment: SpringMusic/Production
+      pipelinetaskname: ConcourseDeploy
+      VERSION_FILE: version/number
+      APP_REPO: music-repo 
+  - put: PCF-Prod
+    params:
+      manifest: app-manifest-output/manifest.yml
+      path: music-release/spring-music-*.jar
+
+- name: load-tests-prod
+  serial: true
+  public: true
+  plan:
+  - get: music-repo
+    trigger: true
+    passed:
+      - push-to-prod
+  - task: get-current-app-color
+    file: music-repo/ci/tasks/current-app-get-info.yml      
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      PCF_API: ((pcf-prod-api))
+      PCF_ORG: ((pcf-prod-organization))
+      PCF_USER: ((prod-deploy-username))
+      PCF_PWD: ((prod-deploy-password))
+      PCF_SPACE: ((pcf-prod-space))
+  - task: run-load-tests
+    file: music-repo/ci/tasks/load-tests.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      PCF_APP_DOMAIN: ((pcf-prod-app-domain))
+      PRODUCTION: true
+  - task: push-dynatrace-monspec-data
+    file: music-repo/ci/tasks/push-dynatrace-monspec-data.yml
+    params: 
+      monspecserviceenvironment: SpringMusic/Production-$NEXT_APP_COLOR
+      apitoken: ((apitoken))
+      tenanthost: ((tenanthost))
+
+- name: validate-prod-load-test
+  serial: true
+  public: true
+  plan:
+  - get: music-repo
+    trigger: true
+    passed:
+      - load-tests-prod
+  - task: get-current-app-color
+    file: music-repo/ci/tasks/current-app-get-info.yml      
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      PCF_API: ((pcf-prod-api))
+      PCF_ORG: ((pcf-prod-organization))
+      PCF_USER: ((prod-deploy-username))
+      PCF_PWD: ((prod-deploy-password))
+      PCF_SPACE: ((pcf-prod-space))
+  - task: validate-via-perfspec
+    file: music-repo/ci/tasks/validate-via-perfspec.yml
+    params: 
+      perfspec-file: springmusic-perfspec-prod-$NEXT_APP_COLOR.json
+      DYNATRACE_APITOKEN: ((apitoken))
+      DYNATRACE_BASEURL: ((tenanthost))
+      APP_REPO: music-repo
+
+- name: promote-new-version
+  serial: true
+  public: true
+  plan:
+  - get: music-repo
+    trigger: true
+    passed:
+      - validate-prod-load-test
+  - task: get-current-app-color
+    file: music-repo/ci/tasks/current-app-get-info.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      PCF_API: ((pcf-prod-api))
+      PCF_ORG: ((pcf-prod-organization))
+      PCF_USER: ((prod-deploy-username))
+      PCF_PWD: ((prod-deploy-password))
+      PCF_SPACE: ((pcf-prod-space))
+  - task: switch-app-routes
+    file: music-repo/ci/tasks/update-routes.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-prod-app-suffix))
+      PCF_APP_DOMAIN: ((pcf-prod-app-domain))
+      PCF_API: ((pcf-prod-api))
+      PCF_ORG: ((pcf-prod-organization))
+      PCF_USER: ((prod-deploy-username))
+      PCF_PWD: ((prod-deploy-password))
+      PCF_SPACE: ((pcf-prod-space))      
+                 
