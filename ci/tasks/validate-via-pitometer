@@ -16,6 +16,9 @@ CURRENT_TIME=$(printf "%(%s)T")
 #setting to validate over last 5 minutes
 START_TIME=$(printf "$(( $(printf "%(%s)T") - 60 * 60 ))")
 
+echo $PWD
+ls -la
+
 npm start --prefix /usr/src/app $START_TIME $CURRENT_TIME ./$APP_REPO/$perfspec | tail -n +5 > pitometer_output.json
 jq '.' pitometer_output.json
 result="$(jq -r '.result' pitometer_output.json)"
