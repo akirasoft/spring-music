@@ -187,7 +187,7 @@ jobs:
   - task: validate-via-pitometer
     file: music-repo/ci/tasks/validate-via-pitometer.yml
     params: 
-      perfspec-file: springmusic-perfspec-stage.json
+      perfspec: springmusic-perfspec-stage.json
       DYNATRACE_APITOKEN: ((apitoken))
       DYNATRACE_BASEURL: ((tenanthost))
       APP_REPO: music-repo
