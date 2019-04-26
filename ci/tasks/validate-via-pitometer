@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export
 set -ex
 
 echo "configuring Pitometer CLI with $DYNATRACE_APITOKEN and $DYNATRACE_BASEURL"

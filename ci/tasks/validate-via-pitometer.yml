@@ -14,3 +14,9 @@ inputs:
 
 run:
   path: ./music-repo/ci/tasks/validate-via-pitometer
+
+params:
+  perfspec: springmusic-perfspec-stage.json
+  DYNATRACE_APITOKEN: ((apitoken))
+  DYNATRACE_BASEURL: ((tenanthost))
+  APP_REPO: music-repo
