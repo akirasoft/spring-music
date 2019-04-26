@@ -63,6 +63,27 @@
         },
         "metricScore": 80
       }
+    },
+    {
+      "id": "OutgoingDependencies_SpringMusic",
+      "source": "Dynatrace",
+      "query": {
+        "entityType": "Service",
+        "smartscape": "toRelationships:runsOn",
+        "aggregation": "count",
+        "tags": [
+          "DeploymentGroup:SPRING-MUSIC-workshop99-Stage"
+        ]
+      },
+      "grading": {
+        "type": "Threshold",
+        "ignoreEmpty": true,
+        "thresholds": {
+          "upperSevere": 6,
+          "lowerSevere": 0
+        },
+        "metricScore": 10
+      }
     }
   ],
   "objectives": {
