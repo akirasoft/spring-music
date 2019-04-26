@@ -20,7 +20,7 @@ echo $PWD
 ls -la ./$APP_REPO
 ls -la ./$APP_REPO/$perfspec
 
-npm start --prefix /usr/src/app $START_TIME $CURRENT_TIME ./$APP_REPO/$perfspec | tail -n +5 > pitometer_output.json
+npm start --prefix /usr/src/app $START_TIME $CURRENT_TIME $PWD/$APP_REPO/$perfspec | tail -n +5 > pitometer_output.json
 jq '.' pitometer_output.json
 result="$(jq -r '.result' pitometer_output.json)"
 if [ "$result" = "fail" ]; then
