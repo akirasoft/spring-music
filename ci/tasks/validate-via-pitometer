@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 echo "configuring Pitometer CLI with $DYNATRACE_APITOKEN and $DYNATRACE_BASEURL"
 
@@ -9,7 +9,7 @@ export CURRENT_APP_COLOR=$(cat ./current-app-info/current-app.txt)
 
 eval perfspec=$perfspec
 
-echo "Validating load test results via Pitometer perfspec: $perfspec-file"
+echo "Validating load test results via Pitometer perfspec: $perfspec"
 
 # container contains bash 4.4 so we'll use bash built-ins for start/end timestamps
 CURRENT_TIME=$(printf "%(%s)T")
