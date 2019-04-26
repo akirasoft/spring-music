@@ -184,8 +184,8 @@ jobs:
       PCF_USER: ((prod-deploy-username))
       PCF_PWD: ((prod-deploy-password))
       PCF_SPACE: ((pcf-prod-space))        
-  - task: validate-via-perfspec
-    file: music-repo/ci/tasks/validate-via-perfspec.yml
+  - task: validate-via-pitometer
+    file: music-repo/ci/tasks/validate-via-pitometer.yml
     params: 
       perfspec-file: springmusic-perfspec-stage.json
       DYNATRACE_APITOKEN: ((apitoken))
@@ -276,8 +276,8 @@ jobs:
       PCF_USER: ((prod-deploy-username))
       PCF_PWD: ((prod-deploy-password))
       PCF_SPACE: ((pcf-prod-space))
-  - task: validate-via-perfspec
-    file: music-repo/ci/tasks/validate-via-perfspec.yml
+  - task: validate-via-pitometer
+    file: music-repo/ci/tasks/validate-via-pitometer.yml
     params: 
       perfspec-file: springmusic-perfspec-prod-$NEXT_APP_COLOR.json
       DYNATRACE_APITOKEN: ((apitoken))
