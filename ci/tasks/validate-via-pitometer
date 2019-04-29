@@ -19,7 +19,7 @@ START_TIME=$(printf "$(( $(printf "%(%s)T") - 60 * 60 ))")
 # ls -la ./$APP_REPO
 # ls -la ./$APP_REPO/$perfspec
 
-pitometer-cli $START_TIME $CURRENT_TIME $PWD/$APP_REPO/$perfspec > pitometer_output.json
+pitometer-cli -s $START_TIME -e $CURRENT_TIME -p $PWD/$APP_REPO/$perfspec > pitometer_output.json
 jq '.' pitometer_output.json
 result="$(jq -r '.result' pitometer_output.json)"
 if [ "$result" = "fail" ]; then
