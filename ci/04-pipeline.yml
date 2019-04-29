@@ -4,7 +4,7 @@ groups:
   - unit
   - build-binary
   - deploy-app
-  # - load-tests
+  - load-tests
   - validate-stage-load-test
   - push-to-prod
   - load-tests-prod
@@ -147,25 +147,25 @@ jobs:
       manifest: app-manifest-output/manifest.yml
       path: music-release/spring-music-*.jar
 
-# - name: load-tests
-#   serial: true
-#   public: true
-#   plan:    
-#   - get: music-repo
-#     trigger: true
-#     passed:
-#       - deploy-app
-#   - task: run-load-tests
-#     file: music-repo/ci/tasks/load-tests.yml
-#     params:
-#       PCF_APP_SUFFIX: ((pcf-stage-app-suffix))
-#       PCF_APP_DOMAIN: ((pcf-stage-app-domain))
-#   - task: push-dynatrace-monspec-data
-#     file: music-repo/ci/tasks/push-dynatrace-monspec-data.yml
-#     params: 
-#       monspecserviceenvironment: SpringMusic/Staging
-#       apitoken: ((apitoken))
-#       tenanthost: ((tenanthost))
+- name: load-tests
+  serial: true
+  public: true
+  plan:    
+  - get: music-repo
+    trigger: true
+    passed:
+      - deploy-app
+  - task: run-load-tests
+    file: music-repo/ci/tasks/load-tests.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-stage-app-suffix))
+      PCF_APP_DOMAIN: ((pcf-stage-app-domain))
+  - task: push-dynatrace-monspec-data
+    file: music-repo/ci/tasks/push-dynatrace-monspec-data.yml
+    params: 
+      monspecserviceenvironment: SpringMusic/Staging
+      apitoken: ((apitoken))
+      tenanthost: ((tenanthost))
 
 - name: validate-stage-load-test
   serial: true
@@ -187,7 +187,7 @@ jobs:
   - task: validate-via-pitometer
     file: music-repo/ci/tasks/validate-via-pitometer.yml
     params: 
-      perfspec: springmusic-perfspec-stage.json
+      perfspec: ci/springmusic-perfspec-stage.json
       DYNATRACE_APITOKEN: ((apitoken))
       DYNATRACE_BASEURL: ((tenanthost))
       APP_REPO: music-repo
@@ -279,7 +279,7 @@ jobs:
   - task: validate-via-pitometer
     file: music-repo/ci/tasks/validate-via-pitometer.yml
     params: 
-      perfspec-file: springmusic-perfspec-prod-$NEXT_APP_COLOR.json
+      perfspec: ci/springmusic-perfspec-prod-$NEXT_APP_COLOR.json
       DYNATRACE_APITOKEN: ((apitoken))
       DYNATRACE_BASEURL: ((tenanthost))
       APP_REPO: music-repo
