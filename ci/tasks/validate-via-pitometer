@@ -13,7 +13,7 @@ echo "Validating load test results via Pitometer perfspec: $perfspec"
 # container contains bash 4.4 so we'll use bash built-ins for start/end timestamps
 CURRENT_TIME=$(printf "%(%s)T")
 #setting to validate over last 5 minutes
-START_TIME=$(printf "$(( $(printf "%(%s)T") - 60 * 60 ))")
+START_TIME=$(printf "$(( $(printf "%(%s)T") - 60 * 5 ))")
 
 # echo $PWD
 # ls -la ./$APP_REPO
