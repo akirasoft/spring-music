@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "configuring Pitometer CLI with $DYNATRACE_APITOKEN and $DYNATRACE_BASEURL"
+#echo "configuring Pitometer CLI with $DYNATRACE_APITOKEN and $DYNATRACE_BASEURL"
 
 export NEXT_APP_COLOR=$(cat ./current-app-info/next-app.txt)
 export CURRENT_APP_COLOR=$(cat ./current-app-info/current-app.txt)
