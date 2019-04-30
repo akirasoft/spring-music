@@ -5,7 +5,7 @@ image_resource:
   type: docker-image
   source:
     repository: mvilliger/pitometer-cli
-    tag: "0.1.5"
+    tag: "0.1.6"
 
 inputs:
 - name: music-repo
