@@ -1,0 +1,85 @@
+resources:
+- name: music-repo
+  type: git
+  source:
+    uri: https://github.com/akirasoft/spring-music.git
+    branch: master
+    private_key: ((github_private_key))
+
+- name: version
+  type: semver
+  source:
+    bucket: ((s3-bucket-name))
+    region_name: us-east-2
+    key: ((workshopnum))/current-version
+    access_key_id: ((s3-access-key-id))
+    secret_access_key: ((s3-secret-access-key))
+    initial_version: 3.0.0
+
+- name: music-release
+  type: s3
+  source:
+    bucket: ((s3-bucket-name))
+    region_name: us-east-2
+    regexp: ((workshopnum))/spring-music-(.*).jar
+    access_key_id: ((s3-access-key-id))
+    secret_access_key: ((s3-secret-access-key))
+
+- name: PCF-Stage
+  type: cf
+  source:
+    api: ((pcf-stage-api))
+    organization: ((pcf-stage-organization))
+    username: ((stage-deploy-username))
+    password: ((stage-deploy-password))
+    skip_cert_check: true
+    space: ((pcf-stage-space))
+    
+jobs:
+- name: unit
+  plan:
+  - get: music-repo
+    trigger: true
+  - task: unit
+    file: music-repo/ci/tasks/unit.yml
+
+- name: build-binary
+  serial: true
+  plan:
+  - get: music-repo
+    passed: [unit]
+    trigger: true
+  - get: version
+    params: {bump: patch}
+  - task: build-artifact
+    file: music-repo/ci/tasks/build-artifact.yml
+    timeout: 5m
+  - put: music-release
+    params:
+      file: workspace/spring-music-*.jar
+  - put: music-repo
+    params:
+      repository: music-repo
+      tag: version/number
+  - put: version
+    params: {file: version/number}
+
+- name: deploy-app
+  serial: true
+  public: true
+  plan:
+  - get: music-repo
+    trigger: true
+    passed: 
+      - build-binary
+  - get: version
+  - get: music-release
+  - task: prepare-app-manifest
+    file: music-repo/ci/tasks/app-manifest-prep.yml
+    params:
+      PCF_APP_SUFFIX: ((pcf-stage-app-suffix))
+      WORKSHOPNUM: ((workshopnum))
+  - put: PCF-Stage
+    params:
+      manifest: app-manifest-output/manifest.yml
+      path: music-release/spring-music-*.jar
